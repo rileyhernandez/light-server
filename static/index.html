@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Node Control</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background-color: #f0f4f8;
+            --container-bg: #ffffff;
+            --accent-color: #76d7c4;
+            --text-color: #333;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --switch-bg: #ccc;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: var(--container-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px var(--shadow-color);
+            width: 100%;
+            max-width: 350px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            font-weight: 700;
+        }
+
+        .switch-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .switch-container:last-child {
+            margin-bottom: 0;
+        }
+
+        .switch-label {
+            font-size: 1.1em;
+        }
+
+        /* The switch - the box around the slider */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        /* Hide default HTML checkbox */
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        /* The slider */
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--switch-bg);
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        .status-bar {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                margin-bottom: 20px;
+                font-size: 0.85em;
+                font-weight: bold;
+                color: #666;
+            }
+        
+            .dot {
+                height: 10px;
+                width: 10px;
+                background-color: #bbb;
+                border-radius: 50%;
+                display: inline-block;
+            }
+        
+            .dot.connected {
+                background-color: #2ecc71;
+                box-shadow: 0 0 8px #2ecc71;
+                animation: pulse 2s infinite;
+            }
+        
+            .dot.disconnected {
+                background-color: #e74c3c;
+            }
+        
+            @keyframes pulse {
+                0% { opacity: 1; }
+                50% { opacity: 0.5; }
+                100% { opacity: 1; }
+            }
+            
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="status-bar">
+            <span id="status-dot" class="dot"></span>
+            <span id="status-text">Connecting...</span>
+        </div>
+        <h1>Power Status</h1>
+        <div id="switches-container">
+            <!-- Switches will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <script>
+        const switchesContainer = document.getElementById('switches-container');
+    
+        function renderSwitches(states) {
+            // Clear existing switches
+            switchesContainer.innerHTML = '';
+
+            // Get a sorted list of node IDs
+            const sortedIds = Object.keys(states).sort();
+
+            // Create and append a new switch for each ID
+            for (const id of sortedIds) {
+                const status = states[id];
+                const isChecked = (status === "On" || status === "Pending");
+                const isPending = (status === "Pending");
+
+                const container = document.createElement('div');
+                container.className = 'switch-container';
+                container.style.opacity = isPending ? "0.5" : "1";
+
+                const label = document.createElement('span');
+                label.className = 'switch-label';
+                // Capitalize the 'n' in 'node' for display
+                label.textContent = id.charAt(0).toUpperCase() + id.slice(1).replace('-', ' ');
+
+
+                const switchLabel = document.createElement('label');
+                switchLabel.className = 'switch';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = id;
+                checkbox.checked = isChecked;
+                checkbox.onchange = () => logState(checkbox);
+
+                const slider = document.createElement('span');
+                slider.className = 'slider';
+
+                switchLabel.appendChild(checkbox);
+                switchLabel.appendChild(slider);
+
+                container.appendChild(label);
+                container.appendChild(switchLabel);
+                switchesContainer.appendChild(container);
+            }
+        }
+
+        function updateStatus(isConnected) {
+            const dot = document.getElementById('status-dot');
+            const text = document.getElementById('status-text');
+            
+            if (isConnected) {
+                dot.className = 'dot connected';
+                text.innerText = 'Live Sync Active';
+                text.style.color = '#2ecc71';
+            } else {
+                dot.className = 'dot disconnected';
+                text.innerText = 'Disconnected - Retrying';
+                text.style.color = '#e74c3c';
+            }
+        }
+    
+        function setupSync() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+    
+            socket.onopen = () => {
+                console.log("Connected to server");
+                updateStatus(true);
+            };
+    
+            socket.onmessage = (event) => {
+                const states = JSON.parse(event.data);
+                renderSwitches(states);
+            };
+    
+            socket.onclose = () => {
+                updateStatus(false);
+                console.log("Socket closed. Retrying in 2s...");
+                setTimeout(setupSync, 2000);
+            };
+    
+            socket.onerror = () => {
+                updateStatus(false);
+                socket.close();
+            };
+        }
+    
+        async function logState(checkbox) {
+            const payload = {
+                id: checkbox.id,
+                cmd: checkbox.checked ? "On" : "Off"
+            };
+            await fetch('/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+        }
+    
+        window.onload = setupSync;
+    </script>
+
+</body>
+</html>
