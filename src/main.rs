@@ -21,18 +21,18 @@ pub struct AppState {
 async fn main() {
     env_logger::init();
     
-    let mut initial_state = HashMap::new();
-    initial_state.insert("node-0".into(), LightState::Off);
-    info!("Initial state: {initial_state:?}");
+    // let mut initial_state = HashMap::new();
+    // initial_state.insert("node-0".into(), LightState::Off);
+    // info!("Initial state: {initial_state:?}");
     
     let mut mqtt_options = rumqttc::MqttOptions::new("axum-backend", "localhost", 1883);
     mqtt_options.set_keep_alive(Duration::from_secs(5));
     let (mqtt_client, eventloop) = rumqttc::AsyncClient::new(mqtt_options, 10);
 
     let (actor_tx, actor_rx) = mpsc::channel(10);
-    let (state_tx, state_rx) = watch::channel(initial_state.clone());
+    let (state_tx, state_rx) = watch::channel(HashMap::new());
 
-    let actor = LightActor::new(initial_state, actor_rx, state_tx, mqtt_client);
+    let actor = LightActor::new(state_rx.borrow().clone(), actor_rx, state_tx, mqtt_client);
     
     info!("Spawning Light Actor...");
     tokio::spawn(actor.run());

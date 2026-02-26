@@ -36,7 +36,7 @@ impl LightActor {
                     info!("--- {command:?} ---");
                     if let Some(current) = self.states.get_mut(&command.id) {
                         *current = LightState::Pending;
-                        let topic = format!("cmd/{}/power", command.id);
+                        let topic = format!("cmnd/{}/power", command.id);
                         let payload = match command.cmd {
                             PowerAction::On => "ON",
                             PowerAction::Off => "OFF",
